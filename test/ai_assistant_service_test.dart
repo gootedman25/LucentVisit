@@ -1,42 +1,93 @@
-import 'package:lucentvisit/src/ai/ai_assistant_service.dart';
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:lucentvisit/src/ai/ai_assistant_service.dart';
+import 'package:lucentvisit/src/ai/ai_service_exception.dart';
 
 void main() {
-  const assistant = AiAssistantService();
-
-  test('explainer returns plain-language sections', () async {
-    final result = await assistant.explain(
-      'Your appointment is scheduled for 9/12/2026. Bring your insurance card.',
-    );
-
-    expect(result.summary, contains('appointment'));
-    expect(result.importantDetails, isNotEmpty);
-    expect(result.questionsToAsk, isNotEmpty);
-    expect(result.cautions.join(' '), contains('not medical advice'));
-  });
-
-  test('draft creator detects appointment and measurement text', () async {
-    final drafts = await assistant.createDrafts(
-      'Follow-up appointment 9/12/2026 at 2 PM. Blood sugar 120 mg/dL before breakfast.',
-    );
-
-    expect(drafts.any((draft) => draft.appointment != null), isTrue);
-    final measurement = drafts
-        .firstWhere((draft) => draft.measurement != null)
-        .measurement!;
-    expect(measurement.value, '120');
-    expect(measurement.unit, 'mg/dL');
-  });
-
-  test(
-    'draft creator does not turn impossible dates into rolled dates',
-    () async {
-      final drafts = await assistant.createDrafts(
-        'Appointment 2/31/2026 at 8 AM',
+  test('explainer posts text and parses snake-case response', () async {
+    final client = MockClient((request) async {
+      expect(request.url.path, '/v1/explain');
+      expect(jsonDecode(request.body), {'text': 'Example letter'});
+      return http.Response(
+        jsonEncode({
+          'summary': 'Summary',
+          'important_details': ['One'],
+          'plain_terms': [
+            {'term': 'CBC', 'meaning': 'A blood test'},
+          ],
+          'questions_to_ask': ['What next?'],
+          'uncertainties': <String>[],
+          'cautions': ['Not medical advice'],
+        }),
+        200,
       );
+    });
+    final service = AiAssistantService(
+      client: client,
+      baseUrl: 'https://example.test',
+    );
+    final result = await service.explain('Example letter');
+    expect(result.summary, 'Summary');
+    expect(result.plainTerms.single.term, 'CBC');
+    service.close();
+  });
 
-      final appointment = drafts.first.appointment!;
-      expect(appointment.date.month, isNot(3));
-    },
-  );
+  test('draft creator parses organizer drafts', () async {
+    final service = AiAssistantService(
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'drafts': [
+              {
+                'type': 'medication',
+                'values': [
+                  {'field': 'name', 'value': 'Example'},
+                ],
+                'evidence': 'Take Example.',
+                'missing_required': ['dose'],
+              },
+            ],
+          }),
+          200,
+        ),
+      ),
+      baseUrl: 'https://example.test',
+    );
+    final drafts = await service.createDrafts('Take Example.');
+    expect(drafts.single.values.single.value, 'Example');
+    expect(drafts.single.missingRequired, ['dose']);
+    service.close();
+  });
+
+  test('requires configuration and valid input', () async {
+    final service = AiAssistantService(
+      client: MockClient((_) async => http.Response('{}', 200)),
+      baseUrl: '',
+    );
+    await expectLater(
+      service.explain('text'),
+      throwsA(isA<AiServiceException>()),
+    );
+    await expectLater(service.explain(' '), throwsA(isA<AiServiceException>()));
+  });
+
+  test('maps rate limits to a safe error', () async {
+    final service = AiAssistantService(
+      client: MockClient((_) async => http.Response('provider secret', 429)),
+      baseUrl: 'https://example.test',
+    );
+    await expectLater(
+      service.explain('text'),
+      throwsA(
+        isA<AiServiceException>().having(
+          (error) => error.type,
+          'type',
+          AiServiceErrorType.rateLimited,
+        ),
+      ),
+    );
+  });
 }

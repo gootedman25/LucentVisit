@@ -34,12 +34,12 @@ class DraftField(StrictModel):
 
 class Draft(StrictModel):
     type: Literal[
-        "appointment"
-        "medication"
-        "health_log"
-        "measurement"
-        "question"
-        "reminder"
+        "appointment",
+        "medication",
+        "health_log",
+        "measurement",
+        "question",
+        "reminder",
     ]
     values: list[DraftField]
     evidence: str

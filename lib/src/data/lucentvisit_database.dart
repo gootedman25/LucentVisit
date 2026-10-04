@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -9,6 +10,9 @@ import 'package:sqflite_sqlcipher/sqflite.dart';
 /// Owns the encrypted mobile database and its versioned schema.
 class LucentVisitDatabase {
   LucentVisitDatabase._(this.db);
+
+  @visibleForTesting
+  LucentVisitDatabase.forTesting(this.db);
 
   final Database db;
 

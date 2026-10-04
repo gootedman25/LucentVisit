@@ -1,56 +1,62 @@
-from fastapi import FastAPI, Depends, HTTPException
 from collections.abc import AsyncIterator
-import httpx
 from typing import Annotated
-from app.ai_provider import AIProvider
-from app.client import ClaudeClient, ClaudeServiceError, ClaudeRateLimitError, ClaudeTimeoutError
+
+import httpx
+from fastapi import Depends, FastAPI, HTTPException
+
+from app.ai_provider import AiProvider
+from app.anthropic_client import (
+    AnthropicClient,
+    AnthropicRateLimitError,
+    AnthropicServiceError,
+    AnthropicTimeoutError,
+)
 from app.config import get_settings
 from app.models import DraftResponse, ExplainResponse, TextRequest
 
 app = FastAPI(
     title="LucentVisit AI Explainer",
-    description=(
-        "Creates plain-language explanations and draft organizer entries."
-        "It does not provide medical advice."
-    ),
-    version="0.1.0"
+    description="Creates plain-language explanations and draft organizer entries.",
+    version="0.1.0",
 )
 
-async def get_ai_provider() -> AIProvider:
-    settings = get_settings()
 
+async def get_ai_provider() -> AsyncIterator[AiProvider]:
     async with httpx.AsyncClient() as http_client:
-        yield ClaudeClient(settings, http_client)
+        yield AnthropicClient(get_settings(), http_client)
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
+def _safe_http_error(error: AnthropicServiceError) -> HTTPException:
+    if isinstance(error, AnthropicRateLimitError):
+        return HTTPException(status_code=429, detail="AI service is busy. Try again later.")
+    if isinstance(error, AnthropicTimeoutError):
+        return HTTPException(status_code=504, detail="AI service timed out. Try again.")
+    return HTTPException(status_code=502, detail="AI service is temporarily unavailable.")
+
+
 @app.post("/v1/explain", response_model=ExplainResponse)
 async def explain(
-    request: TextRequest, 
-    provider: Annotated[AIProvider, Depends(get_ai_provider)],
-    ) -> ExplainResponse:
+    request: TextRequest,
+    provider: Annotated[AiProvider, Depends(get_ai_provider)],
+) -> ExplainResponse:
     try:
         return await provider.explain(request.text)
-    except ClaudeServiceError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except ClaudeRateLimitError as e:
-        raise HTTPException(status_code=429, detail=str(e))
-    except ClaudeTimeoutError as e:
-        raise HTTPException(status_code=504, detail=str(e))
+    except AnthropicServiceError as error:
+        raise _safe_http_error(error) from error
 
-@app.post("/v1/draft", response_model=DraftResponse)
-async def draft(
-    request: TextRequest, 
-    provider: Annotated[AIProvider, Depends(get_ai_provider)],
-    ) -> DraftResponse:
+
+@app.post("/v1/drafts", response_model=DraftResponse)
+async def create_drafts(
+    request: TextRequest,
+    provider: Annotated[AiProvider, Depends(get_ai_provider)],
+) -> DraftResponse:
     try:
-        return await provider.draft(request.text)
-    except ClaudeServiceError as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    except ClaudeRateLimitError as e:
-        raise HTTPException(status_code=429, detail=str(e))
-    except ClaudeTimeoutError as e:
-        raise HTTPException(status_code=504, detail=str(e))
+        return await provider.create_drafts(request.text)
+    except AnthropicServiceError as error:
+        raise _safe_http_error(error) from error
 

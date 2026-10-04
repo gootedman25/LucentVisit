@@ -227,7 +227,7 @@ class _HomeShellState extends State<HomeShell> {
       MedicationScreen(state: widget.state),
       HealthLogScreen(state: widget.state),
       MeasurementScreen(state: widget.state),
-      AiScreen(state: widget.state),
+      const AiScreen(),
       SettingsScreen(state: widget.state),
     ];
     return PopScope(

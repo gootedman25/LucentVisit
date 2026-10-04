@@ -60,7 +60,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('section-back-button')), findsOneWidget);
-    expect(find.text('Text helper prototype'), findsOneWidget);
+    expect(find.text('AI text helper'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('section-back-button')));
     await tester.pumpAndSettle();

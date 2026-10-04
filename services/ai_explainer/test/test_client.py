@@ -1,16 +1,20 @@
 import json
 
-from urllib3 import request
 import httpx
 import pytest
 
-from app.client import ClaudeClient, ClaudeServiceError, ClaudeRateLimitError
+from app.anthropic_client import (
+    AnthropicClient,
+    AnthropicRateLimitError,
+    AnthropicServiceError,
+    AnthropicTimeoutError,
+)
 from app.config import Settings
 
 def make_settings() -> Settings:
     return Settings(
-        anthropic_api_key="test_api_key",
-        claude_model="claude-v1",
+        anthropic_api_key="fake-test-key",
+        anthropic_model="fake-test-model",
     )
 
 @pytest.mark.asyncio
@@ -56,7 +60,7 @@ async def test_explain_valid_response() -> None:
     transport = httpx.MockTransport(handler)
 
     async with httpx.AsyncClient(transport=transport) as http_client:
-        client = ClaudeClient(make_settings(), http_client)
+        client = AnthropicClient(make_settings(), http_client)
         result = await client.explain("Example letter")
 
     assert result.summary == "This is a test explanation."
@@ -98,7 +102,7 @@ async def test_create_drafts_returns_valid_drafts() -> None:
     transport = httpx.MockTransport(handler)
 
     async with httpx.AsyncClient(transport=transport) as http_client:
-        client = ClaudeClient(make_settings(), http_client)
+        client = AnthropicClient(make_settings(), http_client)
         result = await client.create_drafts(
             "Please bring your medication list."
         )
@@ -119,12 +123,10 @@ async def test_rate_limit_is_reported_safely() -> None:
     transport = httpx.MockTransport(handler)
 
     async with httpx.AsyncClient(transport=transport) as http_client:
-        client = ClaudeClient(make_settings(), http_client)
+        client = AnthropicClient(make_settings(), http_client)
 
-        with pytest.raises(ClaudeRateLimitError):
+        with pytest.raises(AnthropicRateLimitError):
             await client.explain("Example letter")
-
-
 @pytest.mark.asyncio
 async def test_malformed_provider_response_is_rejected() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
@@ -143,9 +145,9 @@ async def test_malformed_provider_response_is_rejected() -> None:
     transport = httpx.MockTransport(handler)
 
     async with httpx.AsyncClient(transport=transport) as http_client:
-        client = ClaudeClient(make_settings(), http_client)
+        client = AnthropicClient(make_settings(), http_client)
 
-        with pytest.raises(ClaudeServiceError):
+        with pytest.raises(AnthropicServiceError):
             await client.explain("Example letter")
 
 
@@ -160,11 +162,7 @@ async def test_timeout_is_reported_safely() -> None:
     transport = httpx.MockTransport(handler)
 
     async with httpx.AsyncClient(transport=transport) as http_client:
-        client = ClaudeClient(make_settings(), http_client)
+        client = AnthropicClient(make_settings(), http_client)
 
-        with pytest.raises(ClaudeServiceError):
+        with pytest.raises(AnthropicTimeoutError):
             await client.explain("Example letter")
-
-    
-
-    

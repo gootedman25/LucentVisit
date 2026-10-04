@@ -1,6 +1,8 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 
 import '../models/models.dart';
+import 'backup/backup_models.dart';
+import 'backup/backup_repository.dart';
 import 'lucentvisit_database.dart';
 import 'lucentvisit_repository.dart';
 
@@ -8,7 +10,8 @@ import 'lucentvisit_repository.dart';
 ///
 /// The ordering guarantees are part of the screen behavior, and stable-ID
 /// upserts ensure that editing an entry does not create a duplicate.
-class SqlLucentVisitRepository implements LucentVisitRepository {
+class SqlLucentVisitRepository
+    implements LucentVisitRepository, AtomicBackupRepository {
   SqlLucentVisitRepository(this.database);
 
   final LucentVisitDatabase database;
@@ -127,5 +130,73 @@ class SqlLucentVisitRepository implements LucentVisitRepository {
     ]) {
       await txn.delete(table);
     }
+  });
+
+  @override
+  Future<BackupRestoreResult> restoreMissingAtomically(
+    BackupSnapshot snapshot,
+  ) => database.db.transaction((txn) async {
+    Future<Set<String>> ids(String table) async => (await txn.query(
+      table,
+      columns: ['id'],
+    )).map((row) => row['id']! as String).toSet();
+
+    final appointmentIds = await ids('appointments');
+    final medicationIds = await ids('medications');
+    final healthLogIds = await ids('health_log_entries');
+    final measurementIds = await ids('measurements');
+
+    var appointments = 0;
+    var medications = 0;
+    var healthLogEntries = 0;
+    var measurements = 0;
+
+    for (final value in snapshot.appointments) {
+      if (appointmentIds.add(value.id)) {
+        await txn.insert(
+          'appointments',
+          value.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+        appointments++;
+      }
+    }
+    for (final value in snapshot.medications) {
+      if (medicationIds.add(value.id)) {
+        await txn.insert(
+          'medications',
+          value.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+        medications++;
+      }
+    }
+    for (final value in snapshot.healthLog) {
+      if (healthLogIds.add(value.id)) {
+        await txn.insert(
+          'health_log_entries',
+          value.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+        healthLogEntries++;
+      }
+    }
+    for (final value in snapshot.measurements) {
+      if (measurementIds.add(value.id)) {
+        await txn.insert(
+          'measurements',
+          value.toMap(),
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+        measurements++;
+      }
+    }
+
+    return BackupRestoreResult(
+      appointments: appointments,
+      medications: medications,
+      healthLogEntries: healthLogEntries,
+      measurements: measurements,
+    );
   });
 }

@@ -1,22 +1,22 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:lucentvisit/src/data/backup_service.dart';
-import 'package:lucentvisit/src/data/lucentvisit_repository.dart';
-import 'package:lucentvisit/src/models/models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:lucentvisit/src/data/backup/backup_codec.dart';
+import 'package:lucentvisit/src/data/backup/backup_models.dart';
+import 'package:lucentvisit/src/data/backup/backup_service.dart';
+import 'package:lucentvisit/src/data/lucentvisit_database.dart';
+import 'package:lucentvisit/src/data/sql_lucentvisit_repository.dart';
+import 'package:lucentvisit/src/models/models.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
-  final service = BackupService();
-  const password = 'a unique backup passphrase';
-  late Uint8List encrypted;
-  final data = BackupData(
+  const password = 'a unique backup password';
+  final snapshot = BackupSnapshot(
     appointments: [
       Appointment(id: 'a', date: DateTime(2026, 9, 1), reason: 'Checkup'),
     ],
-    medications: const [
-      Medication(id: 'm', name: 'Private medicine', times: ['09:37']),
-    ],
+    medications: const [Medication(id: 'm', name: 'Private medicine')],
     healthLog: [
       HealthLogEntry(
         id: 'h',
@@ -34,96 +34,131 @@ void main() {
       ),
     ],
   );
-  setUpAll(() async => encrypted = await service.encrypt(data, password));
 
-  test('backup encrypts and round trips all four entry types', () async {
-    expect(utf8.decode(encrypted), isNot(contains('Private note')));
-    final envelope = jsonDecode(utf8.decode(encrypted)) as Map<String, dynamic>;
-    expect(envelope['format'], 'lucentvisit-backup');
-    final restored = await service.decrypt(encrypted, password);
-    expect(restored.toMap(), data.toMap());
+  test('codec encrypts and round trips a snapshot', () async {
+    final codec = BackupCodec();
+    final bytes = await codec.encode(
+      payload: snapshot.toJson(),
+      password: password,
+    );
+    expect(utf8.decode(bytes), isNot(contains('Private note')));
+    final decoded = await codec.decode(bytes: bytes, password: password);
+    final restored = BackupSnapshot.fromJson(decoded.payload);
+    expect(restored.medications.single.name, 'Private medicine');
     expect(restored.measurements.single.systolic, 120);
-    expect(restored.measurements.single.diastolic, 80);
   });
-  test('wrong passphrase cannot decrypt', () async {
-    await expectLater(
-      service.decrypt(encrypted, 'wrong passphrase'),
-      throwsFormatException,
+
+  test('wrong password and corrupted files are rejected', () async {
+    final codec = BackupCodec();
+    final bytes = await codec.encode(
+      payload: snapshot.toJson(),
+      password: password,
     );
-  });
-
-  test('legacy ClearCue backup envelopes remain restorable', () async {
-    final envelope = jsonDecode(utf8.decode(encrypted)) as Map<String, dynamic>;
-    envelope['format'] = 'clearcue-backup';
-    final legacy = Uint8List.fromList(utf8.encode(jsonEncode(envelope)));
-    final restored = await service.decrypt(legacy, password);
-    expect(restored.toMap(), data.toMap());
-  });
-
-  test('previous-brand backup envelopes remain restorable', () async {
-    final envelope = jsonDecode(utf8.decode(encrypted)) as Map<String, dynamic>;
-    envelope['format'] = 'carecue-backup';
-    final legacy = Uint8List.fromList(utf8.encode(jsonEncode(envelope)));
-    final restored = await service.decrypt(legacy, password);
-    expect(restored.toMap(), data.toMap());
-  });
-  test('tampered ciphertext cannot decrypt', () async {
-    final envelope = jsonDecode(utf8.decode(encrypted)) as Map<String, dynamic>;
-    final ciphertext = base64Decode(envelope['ciphertext'] as String);
-    ciphertext[0] ^= 1;
-    envelope['ciphertext'] = base64Encode(ciphertext);
     await expectLater(
-      service.decrypt(
-        Uint8List.fromList(utf8.encode(jsonEncode(envelope))),
-        password,
+      codec.decode(bytes: bytes, password: 'another long password'),
+      throwsA(isA<BackupCodecException>()),
+    );
+    final envelope = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
+    final cipherText = base64Decode(envelope['ciphertext'] as String);
+    cipherText[0] ^= 1;
+    envelope['ciphertext'] = base64Encode(cipherText);
+    await expectLater(
+      codec.decode(
+        bytes: Uint8List.fromList(utf8.encode(jsonEncode(envelope))),
+        password: password,
       ),
-      throwsFormatException,
+      throwsA(isA<BackupCodecException>()),
     );
   });
-  test('backup rejects short passphrases', () async {
-    await expectLater(service.encrypt(data, 'short'), throwsFormatException);
-  });
-  test('duplicate record IDs are rejected before restore', () {
-    final map = data.toMap();
-    map['medications'] = [
-      data.medications.single.toMap(),
-      data.medications.single.toMap(),
-    ];
-    expect(() => BackupData.fromMap(map), throwsFormatException);
+
+  test('restore is atomic and rolls back every insert on failure', () async {
+    sqfliteFfiInit();
+    final db = await databaseFactoryFfi.openDatabase(
+      inMemoryDatabasePath,
+      options: OpenDatabaseOptions(singleInstance: false),
+    );
+    addTearDown(db.close);
+    await _createSchema(db);
+    await db.execute('''
+      CREATE TRIGGER fail_measurement BEFORE INSERT ON measurements
+      BEGIN SELECT RAISE(ABORT, 'test failure'); END
+    ''');
+    final repository = SqlLucentVisitRepository(
+      LucentVisitDatabase.forTesting(db),
+    );
+    await expectLater(
+      repository.restoreMissingAtomically(snapshot),
+      throwsA(anything),
+    );
+    expect((await db.query('appointments')), isEmpty);
+    expect((await db.query('medications')), isEmpty);
+    expect((await db.query('health_log_entries')), isEmpty);
+    expect((await db.query('measurements')), isEmpty);
   });
 
-  test('restore preserves newer records and is safe to repeat', () async {
-    final repository = _RestoreRepository();
-    repository.meds.add(const Medication(id: 'm', name: 'Newer label'));
-    expect(await service.restoreMissing(data, repository), 3);
-    expect(repository.meds.single.name, 'Newer label');
-    expect(await service.restoreMissing(data, repository), 0);
-    expect(repository.visits.length, 1);
+  test('service previews before restoring and skips existing IDs', () async {
+    sqfliteFfiInit();
+    final sourceDb = await databaseFactoryFfi.openDatabase(
+      inMemoryDatabasePath,
+      options: OpenDatabaseOptions(singleInstance: false),
+    );
+    final targetDb = await databaseFactoryFfi.openDatabase(
+      inMemoryDatabasePath,
+      options: OpenDatabaseOptions(singleInstance: false),
+    );
+    addTearDown(sourceDb.close);
+    addTearDown(targetDb.close);
+    await _createSchema(sourceDb);
+    await _createSchema(targetDb);
+    final source = SqlLucentVisitRepository(
+      LucentVisitDatabase.forTesting(sourceDb),
+    );
+    final target = SqlLucentVisitRepository(
+      LucentVisitDatabase.forTesting(targetDb),
+    );
+    for (final value in snapshot.appointments) {
+      await source.saveAppointment(value);
+    }
+    for (final value in snapshot.medications) {
+      await source.saveMedication(value);
+    }
+    for (final value in snapshot.healthLog) {
+      await source.saveHealthLogEntry(value);
+    }
+    for (final value in snapshot.measurements) {
+      await source.saveMeasurement(value);
+    }
+    await target.saveMedication(const Medication(id: 'm', name: 'Newer label'));
+
+    final bytes = await BackupService(source).createBackup(password);
+    final prepared = await BackupService(
+      target,
+    ).prepareRestore(bytes, password);
+    expect(prepared.preview.total, 4);
+    final result = await BackupService(target).restorePrepared(prepared);
+    expect(result.total, 3);
+    expect((await target.medications()).single.name, 'Newer label');
+    expect((await BackupService(target).restorePrepared(prepared)).total, 0);
   });
 }
 
-class _RestoreRepository implements LucentVisitRepository {
-  final visits = <Appointment>[];
-  final meds = <Medication>[];
-  final notes = <HealthLogEntry>[];
-  final vitals = <Measurement>[];
-  @override
-  Future<List<Appointment>> appointments() async => visits;
-  @override
-  Future<List<Medication>> medications() async => meds;
-  @override
-  Future<List<HealthLogEntry>> healthLog() async => notes;
-  @override
-  Future<List<Measurement>> measurements() async => vitals;
-  @override
-  Future<void> saveAppointment(Appointment value) async => visits.add(value);
-  @override
-  Future<void> saveMedication(Medication value) async => meds.add(value);
-  @override
-  Future<void> saveHealthLogEntry(HealthLogEntry value) async =>
-      notes.add(value);
-  @override
-  Future<void> saveMeasurement(Measurement value) async => vitals.add(value);
-  @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+Future<void> _createSchema(Database db) async {
+  await db.execute('''CREATE TABLE appointments (
+    id TEXT PRIMARY KEY, date TEXT NOT NULL, reason TEXT NOT NULL,
+    provider TEXT NOT NULL, documents TEXT NOT NULL, symptoms TEXT NOT NULL,
+    questions TEXT NOT NULL, reminder_minutes INTEGER NOT NULL DEFAULT -1)''');
+  await db.execute('''CREATE TABLE medications (
+    id TEXT PRIMARY KEY, name TEXT NOT NULL, strength TEXT NOT NULL,
+    dose TEXT NOT NULL, schedule TEXT NOT NULL, notes TEXT NOT NULL,
+    active INTEGER NOT NULL, times TEXT NOT NULL DEFAULT '',
+    reminder_minutes INTEGER NOT NULL DEFAULT -1)''');
+  await db.execute('''CREATE TABLE health_log_entries (
+    id TEXT PRIMARY KEY, occurred_at TEXT NOT NULL, text TEXT NOT NULL,
+    flagged INTEGER NOT NULL)''');
+  await db.execute('''CREATE TABLE measurements (
+    id TEXT PRIMARY KEY, measured_at TEXT NOT NULL, type TEXT NOT NULL,
+    value TEXT NOT NULL, unit TEXT NOT NULL, context TEXT NOT NULL)''');
+  await db.execute(
+    'CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)',
+  );
 }

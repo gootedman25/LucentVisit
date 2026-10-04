@@ -1,7 +1,7 @@
 from typing import Protocol
 from app.models import DraftResponse, ExplainResponse
 
-class AIProvider(Protocol):
+class AiProvider(Protocol):
     async def explain(self, text: str) -> ExplainResponse:
         ...
 

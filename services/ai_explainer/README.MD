@@ -35,6 +35,25 @@ This service is designed to:
 
 This prototype should be tested with fictional information. It should not be described as HIPAA-compliant or used with real protected health information until the required privacy, security, contractual, and operational safeguards are in place.
 
+## Run locally
+
+Create a virtual environment, install `requirements.txt`, and set these
+environment variables before starting Uvicorn:
+
+- `ANTHROPIC_API_KEY`
+- `ANTHROPIC_MODEL`
+- Optional: `ANTHROPIC_API_URL`, `ANTHROPIC_VERSION`, and
+  `REQUEST_TIMEOUT_SECONDS`
+
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8080
+```
+
+The Docker image listens on Cloud Run's `PORT` environment variable. Store the
+API key in Secret Manager and expose it to the container at runtime; do not put
+it in source code, a Docker build argument, or the Flutter application.
+
 ## API endpoints
 
 ### `GET /health`

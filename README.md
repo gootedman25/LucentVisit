@@ -20,7 +20,8 @@ The current Flutter app includes:
 - Local deletion of all records
 - Light, dark, and device-following themes
 - A table-of-contents home screen and consistent back/home navigation
-- A local text-helper prototype that organizes text and creates reviewable drafts
+- An optional AI text helper backed by the separate Cloud Run service in
+  `services/ai_explainer`; submitted text is sent only after explicit consent
 - Automated model, encryption, validation, navigation, and editing tests
 - Flutter web deployment through GitHub Pages
 
@@ -30,51 +31,60 @@ Not yet implemented:
 - Biometric app lock and app-switcher privacy shield
 - Onboarding and consent records
 - Accessibility and device integration tests
-- GCP deployment
+- GCP deployment and production abuse protection for the AI service
 - Production app-store assets
 
 ## Manual backup and restore
 
 In Settings, choose **Save backup** and create a unique passphrase of at least
 12 characters. LucentVisit encrypts all appointments, medications, health notes,
-and measurements using AES-256-GCM and a PBKDF2-HMAC-SHA256 key (210,000
+and measurements using AES-256-GCM and a PBKDF2-HMAC-SHA256 key (600,000
 iterations with a random salt). No plaintext backup file is created and the
 passphrase is not stored. Keep the `.lucentvisit` file and passphrase safe;
 there is no password recovery. Browser exports start a download.
 
 Choose **Restore backup**, select the file, enter its passphrase, and review
 the entry counts before confirming. Existing IDs are skipped, so newer records
-are never overwritten. If an import is interrupted, retrying adds only the
-remaining entries. Restore is additive, not an atomic replacement. App
-preferences are not included. Backups are limited to 20 MB and 10,000 entries
-per type. Check restored reminders before relying on them.
+are never overwritten. All inserts run in one SQL transaction: if any insert
+fails, the entire restore rolls back. App preferences are not included.
+Encrypted backup files are limited to 15 MB. Check restored reminders before
+relying on them.
 
 LucentVisit makes no network requests for backup or restore. The operating system
 may offer cloud-connected folders; choose a local folder if that is not desired.
 The web app's ordinary localStorage is not encrypted; exported backups are.
 
-## Installed development environment
+## Development
 
-The workspace now contains Flutter 3.44.4 under `.tools/flutter`. The Android SDK and legacy-named `ClearVisit_API_36` emulator are installed under `%LOCALAPPDATA%\ClearVisitDev` to avoid OneDrive locking large emulator disk images.
-
-To launch the emulator and run LucentVisit:
-
-```powershell
-cd C:\Users\suchi\OneDrive\Documents\Codex\clearvisit
-.\scripts\run-android.ps1
-```
-
-To regenerate wrappers, fetch packages, analyze, and test:
+Use Flutter 3.44.4 or a compatible stable release. To fetch packages, analyze,
+test, and build an Android debug APK:
 
 ```powershell
-.\scripts\bootstrap-mobile.ps1
+flutter pub get
+flutter analyze
+flutter test
+flutter build apk --debug
 ```
 
-Android backup exclusion and minimum-SDK configuration have been applied. Remaining release hardening is tracked in `docs/PLATFORM_SECURITY.md`.
+To connect a Flutter build to the deployed backend, provide its HTTPS URL at
+build time. Keep the Anthropic API key only in the backend environment:
+
+```powershell
+flutter run --dart-define=AI_SERVICE_BASE_URL=https://YOUR-SERVICE-URL
+```
 
 ## Privacy boundary
 
-The mobile app does not currently contain networking code. User-entered records remain in its encrypted local database. The GitHub Pages version uses browser localStorage and clearly discloses that browser storage is not encrypted. GCP is reserved for the public website, policies, build infrastructure, and generic configuration until a separately approved regulated-data project is activated.
+Organizer records remain in the mobile app's encrypted local database. Backup
+and restore make no network requests. The optional AI helper is the exception:
+text entered on that screen is sent to the configured Cloud Run service and
+Anthropic only after the user checks the consent box. The service is designed
+not to persist request or response bodies. Do not describe the prototype as
+HIPAA-compliant or submit real protected health information until the necessary
+contracts, controls, policies, and operational safeguards are in place.
+
+The GitHub Pages build uses browser localStorage, which is not encrypted, and is
+provided as a demonstration rather than the mobile production architecture.
 
 ## Compatibility identifiers
 
@@ -82,5 +92,5 @@ The repository URL, GitHub Pages path, Android/iOS application identifiers,
 database filename, secure-storage key, browser-storage prefix, and local
 development emulator retain their original `clearvisit` identifiers. Changing
 them would create a separate installed app or strand existing on-device data.
-LucentVisit creates `.lucentvisit` backups and can restore legacy `.carecue` and
-`.clearcue` backups.
+LucentVisit creates version-2 `.lucentvisit` backups. The rewritten backup
+format intentionally does not accept the earlier prototype backup envelopes.
