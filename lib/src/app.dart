@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ai/ai_assistant_service.dart';
 import 'app_state.dart';
 import 'data/lucentvisit_repository.dart';
 import 'notifications/reminder_service.dart';
@@ -11,10 +12,16 @@ import 'screens/measurement_screen.dart';
 import 'screens/settings_screen.dart';
 
 class LucentVisitApp extends StatefulWidget {
-  const LucentVisitApp({required this.repository, this.reminders, super.key});
+  const LucentVisitApp({
+    required this.repository,
+    this.reminders,
+    this.aiService,
+    super.key,
+  });
 
   final LucentVisitRepository repository;
   final ReminderService? reminders;
+  final AiAssistantService? aiService;
 
   @override
   State<LucentVisitApp> createState() => _LucentVisitAppState();
@@ -45,7 +52,7 @@ class _LucentVisitAppState extends State<LucentVisitApp> {
         themeMode: state.themeMode,
         theme: _lucentVisitTheme(Brightness.light),
         darkTheme: _lucentVisitTheme(Brightness.dark),
-        home: HomeShell(state: state),
+        home: HomeShell(state: state, aiService: widget.aiService),
       ),
     );
   }
@@ -202,9 +209,10 @@ class _LucentVisitAppState extends State<LucentVisitApp> {
 }
 
 class HomeShell extends StatefulWidget {
-  const HomeShell({required this.state, super.key});
+  const HomeShell({required this.state, this.aiService, super.key});
 
   final AppState state;
+  final AiAssistantService? aiService;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -227,7 +235,7 @@ class _HomeShellState extends State<HomeShell> {
       MedicationScreen(state: widget.state),
       HealthLogScreen(state: widget.state),
       MeasurementScreen(state: widget.state),
-      const AiScreen(),
+      AiScreen(state: widget.state, service: widget.aiService),
       SettingsScreen(state: widget.state),
     ];
     return PopScope(

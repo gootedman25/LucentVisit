@@ -7,9 +7,12 @@ import 'package:lucentvisit/src/ai/ai_assistant_service.dart';
 import 'package:lucentvisit/src/ai/ai_service_exception.dart';
 
 void main() {
+  Future<String?> testToken() async => 'test-app-check-token';
+
   test('explainer posts text and parses snake-case response', () async {
     final client = MockClient((request) async {
       expect(request.url.path, '/v1/explain');
+      expect(request.headers['X-Firebase-AppCheck'], 'test-app-check-token');
       expect(jsonDecode(request.body), {'text': 'Example letter'});
       return http.Response(
         jsonEncode({
@@ -28,6 +31,7 @@ void main() {
     final service = AiAssistantService(
       client: client,
       baseUrl: 'https://example.test',
+      appCheckTokenProvider: testToken,
     );
     final result = await service.explain('Example letter');
     expect(result.summary, 'Summary');
@@ -55,6 +59,7 @@ void main() {
         ),
       ),
       baseUrl: 'https://example.test',
+      appCheckTokenProvider: testToken,
     );
     final drafts = await service.createDrafts('Take Example.');
     expect(drafts.single.values.single.value, 'Example');
@@ -66,6 +71,7 @@ void main() {
     final service = AiAssistantService(
       client: MockClient((_) async => http.Response('{}', 200)),
       baseUrl: '',
+      appCheckTokenProvider: testToken,
     );
     await expectLater(
       service.explain('text'),
@@ -78,6 +84,7 @@ void main() {
     final service = AiAssistantService(
       client: MockClient((_) async => http.Response('provider secret', 429)),
       baseUrl: 'https://example.test',
+      appCheckTokenProvider: testToken,
     );
     await expectLater(
       service.explain('text'),
@@ -89,5 +96,25 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('rejects requests when app verification has no token', () async {
+    final service = AiAssistantService(
+      client: MockClient((_) async => http.Response('{}', 200)),
+      baseUrl: 'https://example.test',
+      appCheckTokenProvider: () async => null,
+    );
+
+    await expectLater(
+      service.explain('text'),
+      throwsA(
+        isA<AiServiceException>().having(
+          (error) => error.type,
+          'type',
+          AiServiceErrorType.configuration,
+        ),
+      ),
+    );
+    service.close();
   });
 }

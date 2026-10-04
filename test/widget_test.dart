@@ -1,3 +1,8 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:lucentvisit/src/ai/ai_assistant_service.dart';
 import 'package:lucentvisit/src/app.dart';
 import 'package:lucentvisit/src/data/lucentvisit_repository.dart';
 import 'package:lucentvisit/src/models/models.dart';
@@ -5,6 +10,70 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('reviewed AI appointment draft can be saved to Visits', (
+    tester,
+  ) async {
+    final repository = _FakeRepository();
+    final service = AiAssistantService(
+      client: MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'drafts': [
+              {
+                'type': 'appointment',
+                'values': [
+                  {'field': 'date', 'value': '2030-10-17'},
+                  {'field': 'time', 'value': '14:30'},
+                  {'field': 'reason', 'value': 'Follow-up visit'},
+                  {'field': 'provider', 'value': 'Dr. Taylor'},
+                  {'field': 'reminder_minutes', 'value': '-1'},
+                ],
+                'evidence': 'Follow-up on October 17 at 2:30 PM.',
+                'missing_required': <String>[],
+              },
+            ],
+          }),
+          200,
+        ),
+      ),
+      baseUrl: 'https://example.test',
+      appCheckTokenProvider: () async => 'test-token',
+    );
+    await tester.pumpWidget(
+      LucentVisitApp(repository: repository, aiService: service),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Text'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explain text'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create organizer drafts').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'Follow-up on October 17 at 2:30 PM.',
+    );
+    await tester.drag(find.byType(ListView).first, const Offset(0, -320));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('Save to Visits'), findsOneWidget);
+    expect(repository._appointments, isEmpty);
+    await tester.tap(find.text('Save to Visits'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(repository._appointments, hasLength(1));
+    expect(repository._appointments.single.reason, 'Follow-up visit');
+    expect(repository._appointments.single.provider, 'Dr. Taylor');
+    expect(find.text('Saved'), findsOneWidget);
+  });
+
   testWidgets('blood pressure edits separate top and bottom numbers', (
     tester,
   ) async {

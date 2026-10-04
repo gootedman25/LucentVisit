@@ -14,10 +14,11 @@ The service does not diagnose conditions, recommend treatments, or directly modi
 
 1. The user chooses to submit text from the LucentVisit app.
 2. The Flutter app sends the text to this service over HTTPS.
-3. This service sends the text to the configured Anthropic model.
-4. Anthropic returns a structured response.
-5. LucentVisit shows the explanation or proposed entries to the user.
-6. Nothing is added to the app until the user reviews and approves it.
+3. The service verifies the request's Firebase App Check token.
+4. This service sends the text to the configured Anthropic model.
+5. Anthropic returns a structured response.
+6. LucentVisit shows the explanation or proposed entries to the user.
+7. Nothing is added to the app until the user reviews and approves it.
 
 ## Privacy
 
@@ -46,13 +47,47 @@ environment variables before starting Uvicorn:
   `REQUEST_TIMEOUT_SECONDS`
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8080
 ```
 
 The Docker image listens on Cloud Run's `PORT` environment variable. Store the
 API key in Secret Manager and expose it to the container at runtime; do not put
 it in source code, a Docker build argument, or the Flutter application.
+
+The `/health` endpoint is public. Both AI endpoints require a valid
+`X-Firebase-AppCheck` header. Local API tests replace the verifier with a test
+dependency; do not disable verification in a deployed service.
+
+## Deploy to Google Cloud Run
+
+The production setup uses one Cloud Run service, one dedicated runtime service
+account, and one Secret Manager secret. It does not use Terraform or a cloud
+database. From this directory, deploy with:
+
+```text
+gcloud run deploy lucentvisit-ai \
+  --project=lucentvisit \
+  --region=us-central1 \
+  --source=. \
+  --service-account=lucentvisit-ai-runtime@lucentvisit.iam.gserviceaccount.com \
+  --set-secrets=ANTHROPIC_API_KEY=anthropic-api-key:latest \
+  --set-env-vars=ANTHROPIC_MODEL=claude-haiku-4-5-20251001 \
+  --memory=512Mi \
+  --cpu=1 \
+  --concurrency=20 \
+  --timeout=60 \
+  --min=0 \
+  --max-instances=3 \
+  --allow-unauthenticated
+```
+
+Cloud Run accepts unauthenticated network traffic because mobile clients do not
+carry Google Cloud IAM credentials. The application endpoints still authenticate
+the installation by verifying Firebase App Check tokens. Keep the runtime
+service account's `roles/firebaseappcheck.tokenVerifier` role, set conservative
+instance limits, and monitor both Cloud Run and Anthropic usage. App Check
+reduces automated abuse but is not a substitute for budgets and monitoring.
 
 ## API endpoints
 

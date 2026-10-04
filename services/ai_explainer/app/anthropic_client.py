@@ -31,6 +31,19 @@ Rules:
 - Create drafts only from information explicitly present in the source.
 - Never invent a date, time, dosage, unit, medication name, or measurement.
 - Put required information that is absent in missing_required.
+- Use only these field names for each draft type:
+  appointment: date, time, reason, provider, documents, symptoms, questions,
+    reminder_minutes. Required: date, time, reason.
+  medication: name, strength, dose, schedule, notes, times, reminder_minutes.
+    Required: name. Format multiple times as comma-separated HH:MM values.
+  health_log: date, time, text, flagged. Required: date, time, text.
+  measurement: date, time, type, value, unit, context.
+    Required: date, time, type, value, unit. Format blood pressure as 120/80.
+  question: question.
+  reminder: title, date, time.
+- Use integer minutes for reminder_minutes. Use -1 when no reminder is stated.
+- Prefer attaching questions and reminders to an appointment or medication
+  draft instead of creating standalone question or reminder drafts.
 - Preserve the supporting source sentence in evidence.
 - Use YYYY-MM-DD for complete dates and 24-hour HH:MM for specific times.
 - Do not diagnose, recommend treatment, or make clinical decisions.
@@ -118,4 +131,3 @@ class AnthropicClient:
             raise AnthropicServiceError(
                 "The AI provider returned an invalid response."
             ) from error
-

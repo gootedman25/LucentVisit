@@ -6,16 +6,28 @@ import 'package:http/http.dart' as http;
 import 'ai_models.dart';
 import 'ai_service_exception.dart';
 
+typedef AppCheckTokenProvider = Future<String?> Function();
+
 class AiAssistantService {
-  AiAssistantService({http.Client? client, String? baseUrl})
-    : _client = client ?? http.Client(),
-      _ownsClient = client == null,
-      _baseUrl = baseUrl ?? const String.fromEnvironment('AI_SERVICE_BASE_URL');
+  AiAssistantService({
+    http.Client? client,
+    String? baseUrl,
+    required AppCheckTokenProvider appCheckTokenProvider,
+  }) : _client = client ?? http.Client(),
+       _ownsClient = client == null,
+       _baseUrl =
+           baseUrl ??
+           const String.fromEnvironment(
+             'AI_SERVICE_BASE_URL',
+             defaultValue: 'https://lucentvisit-ai-qlpxxi2yfa-uc.a.run.app',
+           ),
+       _appCheckTokenProvider = appCheckTokenProvider;
 
   static const maximumInputLength = 12000;
   final http.Client _client;
   final bool _ownsClient;
   final String _baseUrl;
+  final AppCheckTokenProvider _appCheckTokenProvider;
 
   Future<AiExplanation> explain(String input) async =>
       AiExplanation.fromJson(await _post('/v1/explain', _validate(input)));
@@ -74,12 +86,31 @@ class AiAssistantService {
       );
     }
 
+    final headers = <String, String>{'content-type': 'application/json'};
+    try {
+      final token = await _appCheckTokenProvider();
+      if (token == null || token.trim().isEmpty) {
+        throw const AiServiceException(
+          type: AiServiceErrorType.configuration,
+          message: 'This app installation could not be verified.',
+        );
+      }
+      headers['X-Firebase-AppCheck'] = token;
+    } on AiServiceException {
+      rethrow;
+    } on Object {
+      throw const AiServiceException(
+        type: AiServiceErrorType.configuration,
+        message: 'This app installation could not be verified.',
+      );
+    }
+
     late http.Response response;
     try {
       response = await _client
           .post(
             base.resolve(path),
-            headers: const {'content-type': 'application/json'},
+            headers: headers,
             body: jsonEncode({'text': text}),
           )
           .timeout(const Duration(seconds: 35));

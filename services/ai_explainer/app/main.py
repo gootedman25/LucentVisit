@@ -5,6 +5,7 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException
 
 from app.ai_provider import AiProvider
+from app.app_check import initialize_firebase, require_app_check
 from app.anthropic_client import (
     AnthropicClient,
     AnthropicRateLimitError,
@@ -19,6 +20,7 @@ app = FastAPI(
     description="Creates plain-language explanations and draft organizer entries.",
     version="0.1.0",
 )
+initialize_firebase()
 
 
 async def get_ai_provider() -> AsyncIterator[AiProvider]:
@@ -43,6 +45,7 @@ def _safe_http_error(error: AnthropicServiceError) -> HTTPException:
 async def explain(
     request: TextRequest,
     provider: Annotated[AiProvider, Depends(get_ai_provider)],
+    _: Annotated[dict, Depends(require_app_check)],
 ) -> ExplainResponse:
     try:
         return await provider.explain(request.text)
@@ -54,9 +57,9 @@ async def explain(
 async def create_drafts(
     request: TextRequest,
     provider: Annotated[AiProvider, Depends(get_ai_provider)],
+    _: Annotated[dict, Depends(require_app_check)],
 ) -> DraftResponse:
     try:
         return await provider.create_drafts(request.text)
     except AnthropicServiceError as error:
         raise _safe_http_error(error) from error
-

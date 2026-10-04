@@ -22,6 +22,7 @@ The current Flutter app includes:
 - A table-of-contents home screen and consistent back/home navigation
 - An optional AI text helper backed by the separate Cloud Run service in
   `services/ai_explainer`; submitted text is sent only after explicit consent
+- Firebase App Check attestation for AI requests, without user accounts
 - Automated model, encryption, validation, navigation, and editing tests
 - Flutter web deployment through GitHub Pages
 
@@ -31,7 +32,7 @@ Not yet implemented:
 - Biometric app lock and app-switcher privacy shield
 - Onboarding and consent records
 - Accessibility and device integration tests
-- GCP deployment and production abuse protection for the AI service
+- GCP deployment and production store-signing configuration for App Check
 - Production app-store assets
 
 ## Manual backup and restore
@@ -66,12 +67,37 @@ flutter test
 flutter build apk --debug
 ```
 
-To connect a Flutter build to the deployed backend, provide its HTTPS URL at
-build time. Keep the Anthropic API key only in the backend environment:
+Mobile builds use the deployed Cloud Run service at
+`https://lucentvisit-ai-qlpxxi2yfa-uc.a.run.app`. To test against a different
+backend, override its HTTPS URL at build time. Keep the Anthropic API key only
+in the backend environment:
 
 ```powershell
 flutter run --dart-define=AI_SERVICE_BASE_URL=https://YOUR-SERVICE-URL
 ```
+
+Debug mobile builds use Firebase's App Check debug provider. Register the token
+printed by the first app launch in Firebase Console under **App Check > Apps >
+Manage debug tokens**. Release builds use Play Integrity on Android and App
+Attest with DeviceCheck fallback on iOS. Production signing identities must be
+registered in Firebase before distributing release builds. Never commit a
+debug token.
+
+If debug tokens were created in Firebase Console instead, supply the token for
+the platform being tested only at build time:
+
+```powershell
+# Android
+flutter run `
+  --dart-define=ANDROID_APP_CHECK_DEBUG_TOKEN=YOUR-ANDROID-DEBUG-TOKEN
+
+# iOS
+flutter run \
+  --dart-define=APPLE_APP_CHECK_DEBUG_TOKEN=YOUR-IOS-DEBUG-TOKEN
+```
+
+The token is embedded in that debug build, so use it only for local testing and
+revoke it afterward. Do not put a real token in this README or any source file.
 
 ## Privacy boundary
 

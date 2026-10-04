@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.ai_provider import AiProvider
+from app.app_check import require_app_check
 from app.anthropic_client import (
     AnthropicRateLimitError,
     AnthropicServiceError,
@@ -50,6 +51,7 @@ def client(
         return fake_provider
 
     app.dependency_overrides[get_ai_provider] = provider_override
+    app.dependency_overrides[require_app_check] = lambda: {"app_id": "test-app"}
 
     with TestClient(app) as test_client:
         yield test_client
@@ -130,6 +132,20 @@ def test_wrong_method_is_rejected(client: TestClient) -> None:
     response = client.get("/v1/explain")
 
     assert response.status_code == 405
+
+
+def test_missing_app_check_token_is_rejected(
+    client: TestClient,
+) -> None:
+    app.dependency_overrides.pop(require_app_check)
+
+    response = client.post(
+        "/v1/explain",
+        json={"text": "Example document"},
+    )
+
+    assert response.status_code == 401
+    assert response.json() == {"detail": "App verification required."}
 
 
 @pytest.mark.parametrize(
