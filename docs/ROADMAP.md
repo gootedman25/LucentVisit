@@ -18,9 +18,9 @@
 
 ## Milestone 3 — User-controlled portability
 
-- Completed: versioned encrypted `.lucentvisit` backups with passphrase-based encryption and legacy `.carecue`/`.clearcue` restore support
-- Completed: validated restore preview; add missing records without overwriting existing records
-- Remaining: atomic restore transaction and additional physical-device file-picker tests
+- Completed: versioned encrypted `.lucentvisit` backups with passphrase-based encryption
+- Completed: validated restore preview and atomic restore of missing records without overwriting existing records
+- Remaining: additional physical-device file-picker tests
 - Temporary-file cleanup and share-sheet privacy warnings
 
 ## Milestone 4 — Production quality
@@ -32,10 +32,9 @@
 - Legal launch gates
 - Closed pilot and staged release
 
-## Milestone 5 — GCP control plane
+## Milestone 5 — Optional AI deployment
 
-- Terraform landing zone
-- Public privacy/help website
-- Generic signed app configuration
-- Central security logging and alerting
-- No health data or user identity in the control plane
+- Deploy the AI explainer container to one Cloud Run service
+- Store the Anthropic API key in Secret Manager
+- Add abuse protection, budget alerts, and request-body-safe logging
+- Configure the Flutter build with the service's HTTPS URL
