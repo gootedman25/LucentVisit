@@ -1,6 +1,6 @@
 # Work outside the code
 
-Software controls are only one part of launching LucentVisit. Each section below needs an accountable owner and documented evidence.
+Software controls are only one part of launching LuscentVist. Each section below needs an accountable owner and documented evidence.
 
 ## 1. Company and product decisions
 

@@ -177,7 +177,7 @@ void main() {
     expect(continueButton.onPressed, isNull);
   });
 
-  testWidgets('tapping the LucentVisit logo returns Home', (tester) async {
+  testWidgets('tapping the LuscentVist logo returns Home', (tester) async {
     await tester.pumpWidget(LucentVisitApp(repository: _FakeRepository()));
     await tester.pumpAndSettle();
 

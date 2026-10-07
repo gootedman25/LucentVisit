@@ -1,6 +1,6 @@
-# LucentVisit
+# LuscentVist
 
-LucentVisit is a private, local-first mobile organizer for preparing for medical appointments, maintaining a medication list, and recording health notes and measurements.
+LuscentVist is a private, local-first mobile organizer for preparing for medical appointments, maintaining a medication list, and recording health notes and measurements.
 
 It is not a medical device and does not provide medical advice, diagnosis, monitoring, or treatment.
 
@@ -39,7 +39,7 @@ Not yet implemented:
 ## Manual backup and restore
 
 In Settings, choose **Save backup** and create a unique passphrase of at least
-12 characters. LucentVisit encrypts all appointments, medications, health notes,
+12 characters. LuscentVist encrypts all appointments, medications, health notes,
 and measurements using AES-256-GCM and a PBKDF2-HMAC-SHA256 key (600,000
 iterations with a random salt). No plaintext backup file is created and the
 passphrase is not stored. Keep the `.lucentvisit` file and passphrase safe;
@@ -52,7 +52,7 @@ fails, the entire restore rolls back. App preferences are not included.
 Encrypted backup files are limited to 15 MB. Check restored reminders before
 relying on them.
 
-LucentVisit makes no network requests for backup or restore. The operating system
+LuscentVist makes no network requests for backup or restore. The operating system
 may offer cloud-connected folders; choose a local folder if that is not desired.
 The web app's ordinary localStorage is not encrypted; exported backups are.
 
@@ -122,5 +122,5 @@ The repository URL, GitHub Pages path, Android/iOS application identifiers,
 database filename, secure-storage key, browser-storage prefix, and local
 development emulator retain their original `clearvisit` identifiers. Changing
 them would create a separate installed app or strand existing on-device data.
-LucentVisit creates version-2 `.lucentvisit` backups. The rewritten backup
+LuscentVist creates version-2 `.lucentvisit` backups. The rewritten backup
 format intentionally does not accept the earlier prototype backup envelopes.

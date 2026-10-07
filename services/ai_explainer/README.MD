@@ -1,6 +1,6 @@
-# LucentVisit AI Service
+# LuscentVist AI Service
 
-This directory contains the Python backend for LucentVisit's optional AI features.
+This directory contains the Python backend for LuscentVist's optional AI features.
 
 The service can:
 
@@ -8,21 +8,21 @@ The service can:
 - Extract proposed appointments, medications, health-log entries, measurements, questions, and reminders.
 - Return structured drafts for the user to review.
 
-The service does not diagnose conditions, recommend treatments, or directly modify data in the LucentVisit app.
+The service does not diagnose conditions, recommend treatments, or directly modify data in the LuscentVist app.
 
 ## How it works
 
-1. The user chooses to submit text from the LucentVisit app.
+1. The user chooses to submit text from the LuscentVist app.
 2. The Flutter app sends the text to this service over HTTPS.
 3. The service verifies the request's Firebase App Check token.
 4. This service sends the text to the configured Anthropic model.
 5. Anthropic returns a structured response.
-6. LucentVisit shows the explanation or proposed entries to the user.
+6. LuscentVist shows the explanation or proposed entries to the user.
 7. Nothing is added to the app until the user reviews and approves it.
 
 ## Privacy
 
-The main LucentVisit application stores its organizer data locally on the user's device.
+The main LuscentVist application stores its organizer data locally on the user's device.
 
 The AI features are optional. Text submitted to an AI feature leaves the device and is processed by this Cloud Run service and Anthropic. The app must clearly disclose this before submission.
 

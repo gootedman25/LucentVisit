@@ -33,14 +33,14 @@ class SettingsScreen extends StatelessWidget {
               const Padding(
                 padding: EdgeInsets.only(bottom: 18),
                 child: Text(
-                  'Notes\nNo cloud sync: LucentVisit does not automatically upload your entries.\n\nPersonal organizer only: LucentVisit does not provide medical advice, diagnosis, monitoring, or treatment.',
+                  'Notes\nNo cloud sync: LuscentVist does not automatically upload your entries.\n\nPersonal organizer only: LuscentVist does not provide medical advice, diagnosis, monitoring, or treatment.',
                 ),
               ),
               SummaryCard(
                 icon: Icons.delete_forever,
                 title: 'Delete everything',
                 subtitle:
-                    'Permanently removes all LucentVisit records from this device.',
+                    'Permanently removes all LuscentVist records from this device.',
                 trailing: Icon(
                   Icons.chevron_right,
                   color: Theme.of(context).colorScheme.error,
@@ -49,7 +49,7 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'If you may be having a medical emergency, contact local emergency services. Do not rely on LucentVisit.',
+                'If you may be having a medical emergency, contact local emergency services. Do not rely on LuscentVist.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                   height: 1.35,

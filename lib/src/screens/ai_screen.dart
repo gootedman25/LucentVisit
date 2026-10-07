@@ -436,7 +436,7 @@ class _AiScreenState extends State<AiScreen> {
                   ),
                   subtitle: const Text(
                     'The pasted text leaves this device and is processed by '
-                    'LucentVisit’s cloud service and Anthropic.',
+                    'LuscentVist’s cloud service and Anthropic.',
                   ),
                   onChanged: _loading
                       ? null

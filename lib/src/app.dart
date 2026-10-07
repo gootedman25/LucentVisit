@@ -47,7 +47,7 @@ class _LucentVisitAppState extends State<LucentVisitApp> {
     return AnimatedBuilder(
       animation: state,
       builder: (context, _) => MaterialApp(
-        title: 'LucentVisit',
+        title: 'LuscentVist',
         debugShowCheckedModeBanner: false,
         themeMode: state.themeMode,
         theme: _lucentVisitTheme(Brightness.light),
@@ -257,7 +257,7 @@ class _HomeShellState extends State<HomeShell> {
           titleSpacing: selectedIndex == 0 ? 16 : 0,
           title: Semantics(
             button: true,
-            label: 'LucentVisit logo, go to Home',
+            label: 'LuscentVist logo, go to Home',
             child: InkWell(
               key: const Key('home-logo-button'),
               onTap: _goHome,
@@ -269,7 +269,7 @@ class _HomeShellState extends State<HomeShell> {
                   children: [
                     _LucentVisitMark(),
                     SizedBox(width: 10),
-                    Text('LucentVisit'),
+                    Text('LuscentVist'),
                   ],
                 ),
               ),
@@ -370,7 +370,7 @@ class HomeContentsScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Choose a section below. LucentVisit keeps your information organized on this device.',
+                  'Choose a section below. LuscentVist keeps your information organized on this device.',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     color: Colors.white.withAlpha(240),
                     height: 1.35,

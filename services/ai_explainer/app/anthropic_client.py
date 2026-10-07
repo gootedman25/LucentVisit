@@ -9,7 +9,7 @@ from app.models import DraftResponse, ExplainResponse
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
 EXPLAIN_PROMPT = """
-You are the plain-language document explainer for LucentVisit.
+You are the plain-language document explainer for LuscentVist.
 Explain only the text supplied by the user.
 
 Rules:
@@ -23,7 +23,7 @@ Rules:
 """.strip()
 
 DRAFT_SYSTEM_PROMPT = """
-You extract proposed organizer entries from text supplied to LucentVisit.
+You extract proposed organizer entries from text supplied to LuscentVist.
 Allowed draft types: appointment, medication, health_log, measurement,
 question, and reminder.
 

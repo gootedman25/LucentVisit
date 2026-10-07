@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 
-/// Firebase configuration for LucentVisit's registered mobile applications.
+/// Firebase configuration for LuscentVist's registered mobile applications.
 abstract final class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {

@@ -16,7 +16,7 @@ class LucentVisitDatabase {
 
   final Database db;
 
-  // These pre-LucentVisit identifiers are compatibility keys. Renaming them without
+  // These legacy identifiers are compatibility keys. Renaming them without
   // a migration would make existing installations appear to lose their data.
   static const _keyName = 'clearvisit.database.key.v1';
   static const _secureStorage = FlutterSecureStorage(

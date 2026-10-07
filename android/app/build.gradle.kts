@@ -26,7 +26,7 @@ android {
     buildTypes {
         release {
             // Local development only. Configure a real release signing key
-            // before distributing LucentVisit outside local test builds.
+            // before distributing LuscentVist outside local test builds.
             signingConfig = signingConfigs.getByName("debug")
         }
     }

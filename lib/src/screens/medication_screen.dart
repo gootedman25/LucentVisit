@@ -19,7 +19,7 @@ class MedicationScreen extends StatelessWidget {
         const ScreenIntro(
           title: 'Medication list',
           body:
-              'Record exactly what the label says. LucentVisit does not check medications or doses.',
+              'Record exactly what the label says. LuscentVist does not check medications or doses.',
         ),
         Expanded(
           child: state.medications.isEmpty

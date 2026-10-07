@@ -2,7 +2,7 @@
     <!-- Required by the optional AI text helper in release builds. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="LucentVisit"
+        android:label="LuscentVist"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

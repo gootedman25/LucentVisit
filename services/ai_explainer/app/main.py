@@ -17,7 +17,7 @@ from app.config import get_settings
 from app.models import DraftResponse, ExplainResponse, TextRequest
 
 app = FastAPI(
-    title="LucentVisit AI Explainer",
+    title="LuscentVist AI Explainer",
     description="Creates plain-language explanations and draft organizer entries.",
     version="0.1.0",
 )

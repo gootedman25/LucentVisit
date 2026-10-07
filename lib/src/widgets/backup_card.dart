@@ -135,7 +135,7 @@ class _BackupCardState extends State<BackupCard> {
     final bytes = await _service.createBackup(password);
     final date = DateTime.now().toIso8601String().substring(0, 10);
     final saved = await FilePicker.saveFile(
-      fileName: 'lucentvisit-$date.lucentvisit',
+      fileName: 'luscentvist-$date.lucentvisit',
       bytes: bytes,
       type: FileType.custom,
       allowedExtensions: const ['lucentvisit'],
@@ -152,7 +152,7 @@ class _BackupCardState extends State<BackupCard> {
 
   Future<void> _restore() async {
     final file = await FilePicker.pickFile(
-      dialogTitle: 'Choose LucentVisit backup',
+      dialogTitle: 'Choose LuscentVist backup',
       type: FileType.custom,
       allowedExtensions: const ['lucentvisit'],
     );
