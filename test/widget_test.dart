@@ -137,6 +137,46 @@ void main() {
     expect(find.text('Where would you like to go?'), findsOneWidget);
   });
 
+  testWidgets('switching text helper actions clears text and consent', (
+    tester,
+  ) async {
+    await tester.pumpWidget(LucentVisitApp(repository: _FakeRepository()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Text'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byType(TextField),
+      'Text that belongs only to the explanation action.',
+    );
+    await tester.ensureVisible(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+      isTrue,
+    );
+
+    await tester.ensureVisible(find.text('Explain text'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Explain text'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create organizer drafts').last);
+    await tester.pumpAndSettle();
+
+    final input = tester.widget<TextField>(find.byType(TextField));
+    final consent = tester.widget<CheckboxListTile>(
+      find.byType(CheckboxListTile),
+    );
+    final continueButton = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, 'Continue'),
+    );
+    expect(input.controller?.text, isEmpty);
+    expect(consent.value, isFalse);
+    expect(continueButton.onPressed, isNull);
+  });
+
   testWidgets('tapping the LucentVisit logo returns Home', (tester) async {
     await tester.pumpWidget(LucentVisitApp(repository: _FakeRepository()));
     await tester.pumpAndSettle();

@@ -26,6 +26,15 @@ class _AiScreenState extends State<AiScreen> {
   bool _consent = false;
   bool _loading = false;
 
+  void _changeTask(_AiTask? value) {
+    if (value == null || value == _task) return;
+    setState(() {
+      _task = value;
+      _text.clear();
+      _consent = false;
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -404,9 +413,7 @@ class _AiScreenState extends State<AiScreen> {
                       child: Text('Create organizer drafts'),
                     ),
                   ],
-                  onChanged: _loading
-                      ? null
-                      : (value) => setState(() => _task = value ?? _task),
+                  onChanged: _loading ? null : _changeTask,
                 ),
                 const SizedBox(height: 16),
                 TextField(
