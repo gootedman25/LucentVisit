@@ -5,9 +5,7 @@ import 'package:flutter/foundation.dart';
 abstract final class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'Firebase App Check is only configured for the mobile application.',
-      );
+      return web;
     }
 
     return switch (defaultTargetPlatform) {
@@ -18,6 +16,15 @@ abstract final class DefaultFirebaseOptions {
       ),
     };
   }
+
+  static const web = FirebaseOptions(
+    apiKey: 'AIzaSyB8HFgV3_ANFgArUespXrdqABgkxlZ4RsE',
+    appId: '1:1018297282910:web:89ff05f40741c560109fcf',
+    messagingSenderId: '1018297282910',
+    projectId: 'lucentvisit',
+    authDomain: 'lucentvisit.firebaseapp.com',
+    storageBucket: 'lucentvisit.firebasestorage.app',
+  );
 
   static const android = FirebaseOptions(
     apiKey: 'AIzaSyDlENZDb7mbR-anAus9erQ_MvG31l11TA0',

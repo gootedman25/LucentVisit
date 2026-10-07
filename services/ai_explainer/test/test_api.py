@@ -148,6 +148,24 @@ def test_missing_app_check_token_is_rejected(
     assert response.json() == {"detail": "App verification required."}
 
 
+def test_github_pages_cors_preflight_is_allowed(client: TestClient) -> None:
+    response = client.options(
+        "/v1/explain",
+        headers={
+            "Origin": "https://gootedman25.github.io",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": (
+                "content-type,x-firebase-appcheck"
+            ),
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == (
+        "https://gootedman25.github.io"
+    )
+
+
 @pytest.mark.parametrize(
     ("provider_error", "expected_status"),
     [

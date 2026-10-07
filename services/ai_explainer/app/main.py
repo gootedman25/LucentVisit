@@ -3,6 +3,7 @@ from typing import Annotated
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.ai_provider import AiProvider
 from app.app_check import initialize_firebase, require_app_check
@@ -21,6 +22,13 @@ app = FastAPI(
     version="0.1.0",
 )
 initialize_firebase()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://gootedman25.github.io"],
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    allow_methods=["POST", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Firebase-AppCheck"],
+)
 
 
 async def get_ai_provider() -> AsyncIterator[AiProvider]:

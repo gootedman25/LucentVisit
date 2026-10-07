@@ -25,6 +25,7 @@ The current Flutter app includes:
 - Firebase App Check attestation for AI requests, without user accounts
 - Automated model, encryption, validation, navigation, and editing tests
 - Flutter web deployment through GitHub Pages
+- Firebase App Check protection for both mobile and GitHub Pages AI requests
 
 Not yet implemented:
 
@@ -111,6 +112,9 @@ contracts, controls, policies, and operational safeguards are in place.
 
 The GitHub Pages build uses browser localStorage, which is not encrypted, and is
 provided as a demonstration rather than the mobile production architecture.
+Its AI requests use Firebase App Check with an invisible, domain-restricted
+reCAPTCHA Enterprise provider. The Pages origin is the only production browser
+origin allowed by the Cloud Run service's CORS policy.
 
 ## Compatibility identifiers
 
