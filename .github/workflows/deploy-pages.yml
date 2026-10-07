@@ -38,7 +38,7 @@ jobs:
         run: flutter test
 
       - name: Build web app
-        run: flutter build web --release --base-href "/LucentVisit/"
+        run: flutter build web --release --base-href "/LuscentVisit/"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
